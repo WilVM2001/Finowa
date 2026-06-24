@@ -79,7 +79,9 @@ Abrir http://localhost:3000
 
 ---
 
-## 👤 Usuario Demo
+## 👤 Acceso Administrador
+
+El perfil principal tiene rol `SUPER_ADMIN` con acceso al panel de administración en `/admin`.
 
 ```
 Email:    admin@wdev.com

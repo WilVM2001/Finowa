@@ -15,7 +15,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ email: "admin@wdev.com", password: "Wdev2024!" })
+  const [form, setForm] = useState({ email: "", password: "" })
   const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
@@ -116,13 +116,6 @@ export default function LoginPage() {
                 {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
             </form>
-
-            <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <p className="text-center text-xs text-zinc-500">Cuenta demo:</p>
-              <p className="text-center text-sm text-zinc-400">
-                admin@wdev.com / Wdev2024!
-              </p>
-            </div>
 
             <p className="mt-4 text-center text-sm text-zinc-500">
               ¿No tienes cuenta?{" "}
