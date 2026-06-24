@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
 import { ZodError } from "zod"
+import { ApiError, NotFoundError, ForbiddenError, UnauthorizedError, ConflictError, RateLimitError, ValidationError } from "./errors"
+
+export { ApiError, NotFoundError, ForbiddenError, UnauthorizedError, ConflictError, RateLimitError, ValidationError }
 
 export type ApiHandler = (
   req: Request,
@@ -12,7 +14,33 @@ export function withAuth(handler: ApiHandler) {
     req: Request,
     { params }: { params: Promise<Record<string, string>> } = { params: Promise.resolve({}) }
   ): Promise<NextResponse> => {
+    const { auth } = await import("@/lib/auth")
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "No autorizado", code: "UNAUTHORIZED" },
+        { status: 401 }
+      )
+    }
+
     try {
+      const resolvedParams = await params
+      return await handler(req, { userId: session.user.id, params: resolvedParams })
+    } catch (error) {
+      return handleApiError(error)
+    }
+  }
+}
+
+export function withRole(allowedRoles: string[]) {
+  return (handler: ApiHandler) => {
+    return async (
+      req: Request,
+      routeCtx: { params: Promise<Record<string, string>> } = { params: Promise.resolve({}) }
+    ): Promise<NextResponse> => {
+      const { auth } = await import("@/lib/auth")
+      const { prisma } = await import("@/lib/prisma")
+
       const session = await auth()
       if (!session?.user?.id) {
         return NextResponse.json(
@@ -21,10 +49,31 @@ export function withAuth(handler: ApiHandler) {
         )
       }
 
-      const resolvedParams = await params
-      return await handler(req, { userId: session.user.id, params: resolvedParams })
-    } catch (error) {
-      return handleApiError(error)
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true, isActive: true },
+      })
+
+      if (!user || !user.isActive) {
+        return NextResponse.json(
+          { error: "Cuenta desactivada", code: "ACCOUNT_DISABLED" },
+          { status: 403 }
+        )
+      }
+
+      if (!allowedRoles.includes(user.role)) {
+        return NextResponse.json(
+          { error: "Acceso denegado", code: "FORBIDDEN" },
+          { status: 403 }
+        )
+      }
+
+      try {
+        const resolvedParams = await routeCtx.params
+        return await handler(req, { userId: session.user.id, params: resolvedParams })
+      } catch (error) {
+        return handleApiError(error)
+      }
     }
   }
 }
@@ -46,27 +95,20 @@ export function handleApiError(error: unknown): NextResponse {
 
   if (error instanceof ApiError) {
     return NextResponse.json(
-      { error: error.message, code: error.code },
-      { status: error.status }
+      {
+        error: error.message,
+        code: error.code,
+        ...(error.metadata && { details: error.metadata }),
+      },
+      { status: error.statusCode }
     )
   }
 
-  console.error("[API Error]", error)
+  console.error("[API Error]", error instanceof Error ? error.message : error)
   return NextResponse.json(
     { error: "Error interno del servidor", code: "INTERNAL_ERROR" },
     { status: 500 }
   )
-}
-
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string
-  ) {
-    super(message)
-    this.name = "ApiError"
-  }
 }
 
 export function success<T>(data: T, status = 200) {
@@ -74,5 +116,7 @@ export function success<T>(data: T, status = 200) {
 }
 
 export function parseBody<T = Record<string, unknown>>(req: Request): Promise<T> {
-  return req.json() as Promise<T>
+  return req.json().catch(() => {
+    throw new ApiError(400, "INVALID_JSON", "El cuerpo de la solicitud no es JSON válido")
+  }) as Promise<T>
 }

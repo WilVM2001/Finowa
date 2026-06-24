@@ -12,21 +12,46 @@ enum TransactionType {
   EXPENSE
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  image     String?
-  password  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
 
-  accounts    Account[]
-  sessions    Session[]
-  categories  Category[]
+model User {
+  id          String   @id @default(cuid())
+  name        String?
+  email       String   @unique
+  image       String?
+  password    String?
+  role        Role     @default(USER)
+  isActive    Boolean  @default(true)
+  adminNotes  String?
+  lastLoginAt DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  categories   Category[]
   transactions Transaction[]
-  budgets     Budget[]
-  goals       Goal[]
+  budgets      Budget[]
+  goals        Goal[]
+  auditLogs    AuditLog[]
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  entity    String
+  entityId  String?
+  metadata  String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
