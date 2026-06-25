@@ -3,6 +3,7 @@ import { hash } from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { registerSchema } from "@/lib/validations"
 import { handleApiError } from "@/lib/api-utils"
+import { createAuditLog } from "@/lib/audit"
 
 export async function POST(req: Request) {
   try {
@@ -56,6 +57,8 @@ export async function POST(req: Request) {
     await prisma.category.createMany({
       data: defaultCategories.map((cat) => ({ ...cat, userId: user.id })),
     })
+
+    await createAuditLog(user.id, "REGISTER", "User", user.id, { email: data.email, name: data.name })
 
     return NextResponse.json(
       { success: true, user },

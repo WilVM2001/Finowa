@@ -11,12 +11,15 @@ export const GET = withAuth(async (req, { userId }) => {
     throw new ApiError(403, "FORBIDDEN", "Acceso denegado")
   }
 
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
   const [
     totalUsers,
     totalTransactions,
     adminCount,
     recentUsers,
     activeThisMonth,
+    newThisWeek,
   ] = await Promise.all([
     prisma.user.count({ where: { deletedAt: null } }),
     prisma.transaction.count(),
@@ -33,6 +36,9 @@ export const GET = withAuth(async (req, { userId }) => {
         updatedAt: { gte: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)) },
       },
     }),
+    prisma.user.count({
+      where: { createdAt: { gte: weekAgo }, deletedAt: null },
+    }),
   ])
 
   return success({
@@ -40,6 +46,7 @@ export const GET = withAuth(async (req, { userId }) => {
     totalTransactions,
     adminCount,
     activeThisMonth,
+    newThisWeek,
     recentUsers,
   })
 })
