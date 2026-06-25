@@ -19,17 +19,31 @@ async function main() {
   // 1. Obtener organizacion
   const orgRes = await fetch(`${API}/organizations`, { headers })
   const orgs = await orgRes.json()
-  const org = orgs.data?.[0]?.slug
+  const org = Array.isArray(orgs) ? orgs[0]?.slug : orgs.data?.[0]?.slug
   if (!org) { console.error("❌ No se encontró organización"); process.exit(1) }
   console.log(`📦 Organización: ${org}`)
 
-  // 2. Crear base de datos
+  // 2. Crear grupo si no existe
+  const groupsRes = await fetch(`${API}/organizations/${org}/groups`, { headers })
+  const groupsData = await groupsRes.json()
+  const groups = (groupsData.groups || []).map((g: any) => g.name)
+  const group = "us-east"
+  if (!groups.includes(group)) {
+    console.log(`📍 Creando grupo '${group}' en aws-us-east-1...`)
+    await fetch(`${API}/organizations/${org}/groups`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ name: group, location: "aws-us-east-1" }),
+    })
+  }
+
+  // 3. Crear base de datos
   const name = "finowa"
-  console.log(`\n📀 Creando base de datos '${name}'...`)
+  console.log(`📀 Creando base de datos '${name}'...`)
   const createRes = await fetch(`${API}/organizations/${org}/databases`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ name, region: "us-east", schema: "sqlite" }),
+    body: JSON.stringify({ name, group }),
   })
   const db = await createRes.json()
   if (!createRes.ok) {
