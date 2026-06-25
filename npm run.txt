@@ -1,0 +1,11 @@
+npm run dev         # Servidor desarrollo en localhost:3000
+npm run seed        # Inicializar usuario admin@wdev.com + categorías
+npx prisma db push  # Si la base está vacía, sincronizar esquema
+npm run test        # Ejecutar tests (18 unit tests)
+npm run build       # Compilar para producción
+npm run start       # Servidor producción
+
+Después de npm run dev, entrás a:
+
+localhost:3000/login - login limpio con admin@wdev.com / Wdev2024!
+localhost:3000/admin - panel de administración (solo SUPER_ADMIN)

@@ -1,10 +1,15 @@
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaLibSql } from "@prisma/adapter-libsql"
-import { createClient } from "@libsql/client"
 import { hash } from "bcryptjs"
 
-const libsql = createClient({ url: "file:./prisma/dev.db" })
-const adapter = new PrismaLibSql({ url: "file:./prisma/dev.db" })
+function getTursoConfig() {
+  const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || "file:./prisma/dev.db"
+  const authToken = process.env.TURSO_AUTH_TOKEN
+  if (authToken) return { url, authToken }
+  return { url }
+}
+
+const adapter = new PrismaLibSql(getTursoConfig())
 const prisma = new PrismaClient({ adapter })
 
 async function main() {

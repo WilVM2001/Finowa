@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/utils"
-import { Users, ArrowLeftRight, TrendingUp, Shield } from "lucide-react"
+import { Users, ArrowLeftRight, TrendingUp, Shield, Terminal, Copy, Check } from "lucide-react"
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/admin/stats")
@@ -15,6 +16,21 @@ export default function AdminDashboard() {
       .then(setStats)
       .finally(() => setLoading(false))
   }, [])
+
+  const commands = [
+    { id: "dev", cmd: "npm run dev", desc: "Servidor desarrollo localhost:3000" },
+    { id: "seed", cmd: "npm run seed", desc: "Inicializar admin@wdev.com + categorías" },
+    { id: "push", cmd: "npx prisma db push", desc: "Sincronizar esquema SQLite" },
+    { id: "test", cmd: "npm run test", desc: "Ejecutar tests (18 unit)" },
+    { id: "build", cmd: "npm run build", desc: "Compilar producción" },
+    { id: "start", cmd: "npm run start", desc: "Servidor producción" },
+  ]
+
+  async function copyCmd(id: string, text: string) {
+    await navigator.clipboard.writeText(text)
+    setCopied(id)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   if (loading) {
     return (
