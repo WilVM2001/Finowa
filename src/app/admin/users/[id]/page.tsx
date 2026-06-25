@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { formatCurrency, formatDate } from "@/lib/utils"
-import { ArrowLeft, Shield, ShieldAlert, UserX, UserCheck, Key, Trash2, TrendingUp, TrendingDown, Wallet } from "lucide-react"
+import { ArrowLeft, Shield, ShieldAlert, UserX, UserCheck, Key, Trash2, TrendingUp, TrendingDown, Wallet, AlertTriangle } from "lucide-react"
 import toast from "react-hot-toast"
 
 export default function UserDetailPage() {
@@ -18,6 +18,8 @@ export default function UserDetailPage() {
   const [resetPass, setResetPass] = useState("")
   const [showReset, setShowReset] = useState(false)
   const [adminNotes, setAdminNotes] = useState("")
+  const [confirmPurge, setConfirmPurge] = useState(false)
+  const [purging, setPurging] = useState(false)
 
   useEffect(() => { loadUser() }, [id])
 
@@ -54,6 +56,25 @@ export default function UserDetailPage() {
     })
     if (res.ok) { toast.success("Contraseña restablecida"); setResetPass(""); setShowReset(false) }
     else toast.error("Error")
+  }
+
+  async function handlePurge() {
+    setPurging(true)
+    try {
+      const res = await fetch(`/api/admin/users/${id}/purge`, { method: "POST" })
+      if (res.ok) {
+        const data = await res.json()
+        toast.success(`Cuenta de ${data.email} eliminada definitivamente`)
+        router.push("/admin/users")
+      } else {
+        const err = await res.json()
+        toast.error(err.error || "Error al eliminar cuenta")
+        setPurging(false)
+      }
+    } catch {
+      toast.error("Error de conexión")
+      setPurging(false)
+    }
   }
 
   if (loading) {
@@ -174,6 +195,9 @@ export default function UserDetailPage() {
             <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300" onClick={() => setShowReset(!showReset)}>
               <Key className="mr-1.5 h-4 w-4" /> Restablecer Contraseña
             </Button>
+            <Button size="sm" variant="outline" className="border-red-800 text-red-400 hover:bg-red-500/10" onClick={() => setConfirmPurge(true)}>
+              <Trash2 className="mr-1.5 h-4 w-4" /> Eliminar Cuenta
+            </Button>
           </div>
 
           {showReset && (
@@ -189,6 +213,29 @@ export default function UserDetailPage() {
               />
               <Button type="submit" size="sm" disabled={resetPass.length < 8}>Guardar</Button>
             </form>
+          )}
+
+          {confirmPurge && (
+            <div className="mt-4 rounded-lg border border-red-800/50 bg-red-500/5 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+                <div>
+                  <p className="text-sm font-medium text-red-400">¿Eliminar cuenta permanentemente?</p>
+                  <p className="mt-1 text-xs text-zinc-400">
+                    Se borrarán <strong>todas</strong> las transacciones, presupuestos, metas y categorías de <strong>{user.email}</strong>.
+                    Esta acción <strong>no se puede deshacer</strong>.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="destructive" disabled={purging} onClick={handlePurge}>
+                      {purging ? "Eliminando..." : "Sí, eliminar permanentemente"}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-zinc-400" onClick={() => { setConfirmPurge(false); setPurging(false) }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
