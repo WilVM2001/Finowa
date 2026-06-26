@@ -12,28 +12,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email as string | undefined
-        const password = credentials?.password as string | undefined
+        try {
+          const email = credentials?.email as string | undefined
+          const password = credentials?.password as string | undefined
 
-        if (!email || !password) return null
+          if (!email || !password) return null
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-        })
+          const user = await prisma.user.findUnique({
+            where: { email },
+          })
 
-        if (!user || !user.password) return null
-        if (!user.isActive) return null
+          if (!user || !user.password) return null
+          if (!user.isActive) return null
 
-        const isValid = await compare(password, user.password)
-        if (!isValid) return null
+          const isValid = await compare(password, user.password)
+          if (!isValid) return null
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          role: user.role,
-          isActive: user.isActive,
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+            isActive: user.isActive,
+          }
+        } catch (error) {
+          console.error("[authorize]", error instanceof Error ? error.message : error)
+          if (error instanceof Error && error.stack) {
+            console.error("[authorize] stack:", error.stack.split("\n").slice(0, 4).join("\n"))
+          }
+          return null
         }
       },
     }),

@@ -10,10 +10,12 @@ export function securityHeaders(response: NextResponse) {
 
 const WINDOW_MS = 60_000
 const MAX_REQUESTS = 60
-
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+let cleanupStarted = false
 
 export function checkRateLimit(key: string): boolean {
+  if (!cleanupStarted) startCleanup()
+
   const now = Date.now()
   const entry = rateLimitMap.get(key)
 
@@ -28,10 +30,13 @@ export function checkRateLimit(key: string): boolean {
   return true
 }
 
-// Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, entry] of rateLimitMap) {
-    if (now > entry.resetAt) rateLimitMap.delete(key)
-  }
-}, 300_000).unref()
+function startCleanup() {
+  cleanupStarted = true
+  const timer = setInterval(() => {
+    const now = Date.now()
+    for (const [key, entry] of rateLimitMap) {
+      if (now > entry.resetAt) rateLimitMap.delete(key)
+    }
+  }, 300_000)
+  if (typeof timer?.unref === "function") timer.unref()
+}
