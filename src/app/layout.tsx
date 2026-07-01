@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import { Providers } from "@/providers/Providers"
+import { ThemeProvider } from "@/providers/ThemeProvider"
 
 export const metadata: Metadata = {
   title: "Finanza - Gestión Financiera Inteligente",
@@ -14,9 +15,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body className="min-h-screen bg-black font-sans text-zinc-50 antialiased">
-        <Providers>{children}</Providers>
+        <ThemeProvider>
+          <Providers>{children}</Providers>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -14,23 +14,27 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Shield,
 } from "lucide-react"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "./DashboardLayoutClient"
-
-const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Resumen" },
-  { href: "/dashboard/transactions", icon: ArrowLeftRight, label: "Transacciones" },
-  { href: "/dashboard/budgets", icon: PiggyBank, label: "Presupuestos" },
-  { href: "/dashboard/goals", icon: Target, label: "Metas" },
-  { href: "/dashboard/analytics", icon: BarChart3, label: "Análisis" },
-  { href: "/dashboard/settings", icon: Settings, label: "Configuración" },
-]
 
 export function Sidebar() {
   const pathname = usePathname()
   const { collapsed, setCollapsed } = useSidebar()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "SUPER_ADMIN" || session?.user?.role === "ADMIN"
+
+  const navItems = [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Resumen" },
+    { href: "/dashboard/transactions", icon: ArrowLeftRight, label: "Transacciones" },
+    { href: "/dashboard/budgets", icon: PiggyBank, label: "Presupuestos" },
+    { href: "/dashboard/goals", icon: Target, label: "Metas" },
+    { href: "/dashboard/analytics", icon: BarChart3, label: "Análisis" },
+    { href: "/admin", icon: Shield, label: "Admin", adminOnly: true },
+    { href: "/dashboard/settings", icon: Settings, label: "Configuración" },
+  ]
 
   return (
     <aside
@@ -58,8 +62,9 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-2 py-4">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href
+        {navItems.filter(item => !item.adminOnly || isAdmin).map((item) => {
+          const isActive = pathname.startsWith(item.href)
+          const isAdminBadge = item.adminOnly
           return (
             <Link
               key={item.href}
@@ -67,20 +72,26 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                 isActive
-                  ? "bg-zinc-800 text-white"
+                  ? isAdminBadge ? "bg-red-500/10 text-red-400" : "bg-zinc-800 text-white"
                   : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
                 collapsed && "justify-center px-2"
               )}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className={cn("h-5 w-5 shrink-0", isAdminBadge && "text-red-400")} />
               <AnimatePresence>
                 {!collapsed && (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    className="flex items-center gap-2"
                   >
                     {item.label}
+                    {isAdminBadge && (
+                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
+                        Admin
+                      </span>
+                    )}
                   </motion.span>
                 )}
               </AnimatePresence>
